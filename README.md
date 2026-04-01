@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./public/social-preview.png" alt="Kovax Banner" width="100%" />
+  <img src="./Image/Kovax.png" alt="Kovax Banner" width="100%" />
 </div>
 
 <div align="center">
