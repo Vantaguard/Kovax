@@ -1,4 +1,8 @@
 <div align="center">
+  <img src="https://raw.githubusercontent.com/Vantaguard/Kovax/main/public/social-preview.png" alt="Kovax Banner" width="100%" />
+</div>
+
+<div align="center">
 
 # 🛡️ Kovax
 
