@@ -47,6 +47,13 @@ export const LOG_ACTIONS = {
   // Role actions
   ROLE_ASSIGNED: 'role.assigned',
   ROLE_REMOVED: 'role.removed',
+
+  // Phase 8 — Workflow & Intelligence
+  WORKFLOW_EVALUATED: 'workflow.evaluated',
+  WORKFLOW_ACTION_BLOCKED: 'workflow.action.blocked',
+  WORKFLOW_ACTION_UPDATE_FIELD: 'workflow.action.update_field',
+  NOTIFICATION_CREATED: 'notification.created',
+  DATA_EXPORTED: 'data.exported',
 } as const;
 
 export const ENTITY_TYPES = {
@@ -56,6 +63,9 @@ export const ENTITY_TYPES = {
   TASK: 'task',
   ROLE: 'role',
   ORGANIZATION: 'organization',
+  WORKFLOW: 'workflow',
+  NOTIFICATION: 'notification',
+  EXPORT: 'export',
 } as const;
 
 interface LogActivityParams {

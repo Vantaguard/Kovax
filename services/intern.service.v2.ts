@@ -30,6 +30,7 @@ import {
 } from '@/services/privacy.service';
 import { logActivity, LOG_ACTIONS, ENTITY_TYPES } from '@/services/log.service';
 import { sanitizeSearchQuery } from '@/lib/security/sanitize';
+import { evaluateWorkflows, WORKFLOW_EVENTS, type WorkflowContext } from '@/services/workflow-engine.service';
 
 export interface InternProfile {
   id: string;
@@ -449,6 +450,19 @@ export async function createIntern(input: CreateInternInput): Promise<InternProf
       metadata: { user_id: validated.user_id, status: validated.status, restored: !!existingProfile },
     });
 
+    // Trigger workflow engine
+    const wfContext: WorkflowContext = {
+      organizationId: userData.organization_id,
+      userId: user.id,
+      entityType: ENTITY_TYPES.INTERN_PROFILE,
+      entityId: internData.id,
+      data: { status: validated.status, user_id: validated.user_id },
+    };
+    await evaluateWorkflows(
+      existingProfile ? WORKFLOW_EVENTS.INTERN_UPDATED : WORKFLOW_EVENTS.INTERN_CREATED,
+      wfContext
+    );
+
     return internData;
   } catch (error) {
     throw sanitizeError(error);
@@ -536,6 +550,16 @@ export async function updateIntern(
       metadata: { updated_fields: Object.keys(validated) },
     });
 
+    // Trigger workflow engine
+    const wfContext: WorkflowContext = {
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+      entityType: ENTITY_TYPES.INTERN_PROFILE,
+      entityId: id,
+      data: { ...validated },
+    };
+    await evaluateWorkflows(WORKFLOW_EVENTS.INTERN_UPDATED, wfContext);
+
     return internData;
   } catch (error) {
     throw sanitizeError(error);
@@ -582,6 +606,16 @@ export async function deleteIntern(id: string): Promise<boolean> {
       entity_type: ENTITY_TYPES.INTERN_PROFILE,
       entity_id: id,
     });
+
+    // Trigger workflow engine
+    const wfContext: WorkflowContext = {
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+      entityType: ENTITY_TYPES.INTERN_PROFILE,
+      entityId: id,
+      data: {},
+    };
+    await evaluateWorkflows(WORKFLOW_EVENTS.INTERN_DELETED, wfContext);
 
     return true;
   } catch (error) {

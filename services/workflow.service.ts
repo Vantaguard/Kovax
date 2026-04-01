@@ -16,6 +16,7 @@ import { NotFoundError, ForbiddenError, UnauthorizedError, sanitizeError } from 
 import { logActivity, LOG_ACTIONS, ENTITY_TYPES } from './log.service';
 import { assertModuleEnabled, assertPermission } from '@/lib/phase6/guards';
 import { FEATURE_MODULES } from '@/lib/phase6/keys';
+import { evaluateWorkflows, WORKFLOW_EVENTS, type WorkflowContext } from '@/services/workflow-engine.service';
 
 /**
  * Check if user is a super admin
@@ -240,6 +241,16 @@ export async function approveIntern(internId: string, approverId?: string): Prom
         new_status: 'approved',
       },
     });
+
+    // Trigger workflow engine
+    const wfContext: WorkflowContext = {
+      organizationId: intern.organization_id,
+      userId: approver,
+      entityType: ENTITY_TYPES.INTERN_PROFILE,
+      entityId: internId,
+      data: { status: 'approved', previous_status: intern.status },
+    };
+    await evaluateWorkflows(WORKFLOW_EVENTS.INTERN_APPROVED, wfContext);
   } catch (error) {
     throw sanitizeError(error);
   }
@@ -326,6 +337,16 @@ export async function rejectIntern(
         reason: reason || 'No reason provided',
       },
     });
+
+    // Trigger workflow engine
+    const wfContext: WorkflowContext = {
+      organizationId: intern.organization_id,
+      userId: rejecter,
+      entityType: ENTITY_TYPES.INTERN_PROFILE,
+      entityId: internId,
+      data: { status: 'rejected', previous_status: intern.status, reason },
+    };
+    await evaluateWorkflows(WORKFLOW_EVENTS.INTERN_REJECTED, wfContext);
   } catch (error) {
     throw sanitizeError(error);
   }

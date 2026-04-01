@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useUser } from '@/contexts/UserContext';
 import { useAppConfig } from '@/contexts/AppConfigContext';
 import { processLogout } from '@/app/(public)/login/actions';
+import NotificationBell from '@/components/dashboard/NotificationBell';
 
 export default function Navbar() {
   const router = useRouter();
@@ -67,6 +68,7 @@ export default function Navbar() {
                 </div>
               </div>
             ) : null}
+            <NotificationBell />
             <button
               onClick={handleSignOut}
               className="px-4 py-2 text-sm font-medium text-slate-900 bg-gradient-to-r from-amber-500 to-amber-600 rounded-xl hover:shadow-lg hover:shadow-amber-500/20 hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 focus:ring-offset-slate-900"
@@ -79,3 +81,4 @@ export default function Navbar() {
     </div>
   );
 }
+

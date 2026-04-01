@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 import { updateLastLogin } from '@/services/user.service';
 import { logActivity, LOG_ACTIONS, ENTITY_TYPES } from '@/services/log.service';
+import { evaluateWorkflows, WORKFLOW_EVENTS, type WorkflowContext } from '@/services/workflow-engine.service';
 import { headers } from 'next/headers';
 
 /**
@@ -76,6 +77,29 @@ export async function processLoginSuccess() {
       entity_type: ENTITY_TYPES.USER,
       entity_id: user.id,
     });
+
+    // Trigger workflow engine for user.login
+    try {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('organization_id')
+        .eq('id', user.id)
+        .eq('is_deleted', false)
+        .single();
+
+      if (userData) {
+        const wfContext: WorkflowContext = {
+          organizationId: userData.organization_id,
+          userId: user.id,
+          entityType: ENTITY_TYPES.USER,
+          entityId: user.id,
+          data: { email: user.email },
+        };
+        await evaluateWorkflows(WORKFLOW_EVENTS.USER_LOGIN, wfContext);
+      }
+    } catch (wfError) {
+      console.warn('[Login] Workflow evaluation failed (non-blocking):', wfError);
+    }
   }
 }
 

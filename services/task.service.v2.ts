@@ -26,6 +26,7 @@ import { assertModuleAndPermission } from '@/lib/phase6/guards';
 import { getServerAuthContext, isInternRole } from '@/lib/phase6/auth-context';
 import { logActivity, LOG_ACTIONS, ENTITY_TYPES } from '@/services/log.service';
 import { sanitizeSearchQuery } from '@/lib/security/sanitize';
+import { evaluateWorkflows, WORKFLOW_EVENTS, type WorkflowContext } from '@/services/workflow-engine.service';
 
 export interface Task {
   id: string;
@@ -312,6 +313,16 @@ export async function createTask(input: CreateTaskInput): Promise<Task> {
       },
     });
 
+    // Trigger workflow engine
+    const wfContext: WorkflowContext = {
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+      entityType: ENTITY_TYPES.TASK,
+      entityId: taskData.id,
+      data: { title: validated.title, status: validated.status, priority: validated.priority, assigned_to: validated.assigned_to },
+    };
+    await evaluateWorkflows(WORKFLOW_EVENTS.TASK_CREATED, wfContext);
+
     return taskData;
   } catch (error) {
     throw sanitizeError(error);
@@ -430,6 +441,18 @@ export async function updateTask(id: string, input: UpdateTaskInput): Promise<Ta
       metadata: { updated_fields: Object.keys(validated) },
     });
 
+    // Trigger workflow engine
+    const wfEvent = validated.status ? WORKFLOW_EVENTS.TASK_STATUS_UPDATED
+      : (validated.assigned_to !== undefined ? WORKFLOW_EVENTS.TASK_ASSIGNED : WORKFLOW_EVENTS.TASK_UPDATED);
+    const wfContext: WorkflowContext = {
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+      entityType: ENTITY_TYPES.TASK,
+      entityId: id,
+      data: { ...validated },
+    };
+    await evaluateWorkflows(wfEvent, wfContext);
+
     return taskData;
   } catch (error) {
     throw sanitizeError(error);
@@ -489,6 +512,16 @@ export async function deleteTask(id: string): Promise<boolean> {
       entity_type: ENTITY_TYPES.TASK,
       entity_id: id,
     });
+
+    // Trigger workflow engine
+    const wfContext: WorkflowContext = {
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+      entityType: ENTITY_TYPES.TASK,
+      entityId: id,
+      data: {},
+    };
+    await evaluateWorkflows(WORKFLOW_EVENTS.TASK_DELETED, wfContext);
 
     return true;
   } catch (error) {

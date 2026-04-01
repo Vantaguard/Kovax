@@ -26,6 +26,7 @@ import { assertModuleAndPermission } from '@/lib/phase6/guards';
 import { getServerAuthContext, isInternRole, getAssignedProjectIdsForUser } from '@/lib/phase6/auth-context';
 import { logActivity, LOG_ACTIONS, ENTITY_TYPES } from '@/services/log.service';
 import { sanitizeSearchQuery } from '@/lib/security/sanitize';
+import { evaluateWorkflows, WORKFLOW_EVENTS, type WorkflowContext } from '@/services/workflow-engine.service';
 
 export interface Project {
   id: string;
@@ -313,6 +314,16 @@ export async function createProject(input: CreateProjectInput): Promise<Project>
       metadata: { name: validated.name, status: validated.status },
     });
 
+    // Trigger workflow engine
+    const wfContext: WorkflowContext = {
+      organizationId: userData.organization_id,
+      userId: user.id,
+      entityType: ENTITY_TYPES.PROJECT,
+      entityId: projectData.id,
+      data: { name: validated.name, status: validated.status },
+    };
+    await evaluateWorkflows(WORKFLOW_EVENTS.PROJECT_CREATED, wfContext);
+
     return projectData;
   } catch (error) {
     throw sanitizeError(error);
@@ -379,6 +390,16 @@ export async function updateProject(id: string, input: UpdateProjectInput): Prom
       metadata: { updated_fields: Object.keys(validated) },
     });
 
+    // Trigger workflow engine
+    const wfContext: WorkflowContext = {
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+      entityType: ENTITY_TYPES.PROJECT,
+      entityId: id,
+      data: { ...validated },
+    };
+    await evaluateWorkflows(WORKFLOW_EVENTS.PROJECT_UPDATED, wfContext);
+
     return projectData;
   } catch (error) {
     throw sanitizeError(error);
@@ -424,6 +445,16 @@ export async function deleteProject(id: string): Promise<boolean> {
       entity_type: ENTITY_TYPES.PROJECT,
       entity_id: id,
     });
+
+    // Trigger workflow engine
+    const wfContext: WorkflowContext = {
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+      entityType: ENTITY_TYPES.PROJECT,
+      entityId: id,
+      data: {},
+    };
+    await evaluateWorkflows(WORKFLOW_EVENTS.PROJECT_DELETED, wfContext);
 
     return true;
   } catch (error) {
